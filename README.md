@@ -5,9 +5,9 @@
 A free, open source Mac app that turns your recordings into searchable transcripts, right on your Mac.
 Made by [Snowpine Code](https://snowpinecode.com).
 
-**[See the page and the one-minute video](https://snowpinecode.github.io/snowpine-transcribe/)**
+**[See the page and the short video](https://snowpinecode.github.io/snowpine-transcribe/)**
 
-[![Watch the one-minute video](docs/video-poster.jpg)](https://snowpinecode.github.io/snowpine-transcribe/)
+[![Watch the short video](docs/video-poster.jpg)](https://snowpinecode.github.io/snowpine-transcribe/)
 
 Drop in a recording or a video and get text with a time on every line. Nothing is uploaded, and there's nothing to pay per minute.
 
