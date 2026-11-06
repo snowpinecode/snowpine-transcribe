@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+<title id="title">Snowpine Transcribe</title>
+<desc id="desc">A black rounded tile with a blue sound wave above lines of text, and mountain ridges at the base.</desc>
+<defs><clipPath id="tile"><rect x="100" y="100" width="824" height="824" rx="186"/></clipPath></defs>
+<rect x="100" y="100" width="824" height="824" rx="186" fill="#000000"/>
+<g clip-path="url(#tile)">
+<rect x="282" y="240" width="28" height="60" rx="14" fill="#00A3E0"/><rect x="330" y="210" width="28" height="120" rx="14" fill="#00A3E0"/><rect x="378" y="228" width="28" height="84" rx="14" fill="#00A3E0"/><rect x="426" y="185" width="28" height="170" rx="14" fill="#00A3E0"/><rect x="474" y="215" width="28" height="110" rx="14" fill="#00A3E0"/><rect x="522" y="172" width="28" height="196" rx="14" fill="#00A3E0"/><rect x="570" y="222" width="28" height="96" rx="14" fill="#00A3E0"/><rect x="618" y="195" width="28" height="150" rx="14" fill="#00A3E0"/><rect x="666" y="235" width="28" height="70" rx="14" fill="#00A3E0"/><rect x="714" y="215" width="28" height="110" rx="14" fill="#00A3E0"/>
+<rect x="244" y="430" width="536" height="60" rx="24" fill="#FFFFFF"/>
+<rect x="244" y="530" width="536" height="60" rx="24" fill="#A6A6A6"/>
+<rect x="244" y="630" width="340" height="60" rx="24" fill="#A6A6A6"/>
+<path d="M100 842L294 760L438 820L626 744L924 850V924H100Z" fill="#333333"/>
+<path d="M100 890L350 832L518 878L724 810L924 880V924H100Z" fill="#141414"/>
+<rect x="100" y="100" width="824" height="824" rx="186" fill="none" stroke="#5C5C5C" stroke-width="16"/>
+</g></svg>

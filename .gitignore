@@ -1,0 +1,18 @@
+.build/
+build/
+.swiftpm/
+*.xcodeproj/xcuserdata/
+.DS_Store
+.claude/
+*.log
+*.bak
+
+# Never commit secrets or signing material
+.env
+.env.*
+*.pem
+*.p12
+*.key
+*.mobileprovision
+*.provisionprofile
+service-account*.json

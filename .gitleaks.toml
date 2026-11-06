@@ -1,0 +1,3 @@
+# Extends the gitleaks default rules. Allow known public values by exact value only.
+[extend]
+useDefault = true

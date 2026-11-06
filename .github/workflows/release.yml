@@ -1,0 +1,22 @@
+# Push a tag like v0.2.0 to test, build and publish a download on the Releases page.
+name: Release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Tests
+        run: scripts/test.sh
+      - name: Build the download
+        run: VERSION="${GITHUB_REF_NAME#v}" scripts/package-release.sh
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" build/Snowpine-Transcribe.zip build/Snowpine-Transcribe-*.zip build/Snowpine-Transcribe-*.zip.sha256 --repo "$GITHUB_REPOSITORY" --title "Snowpine Transcribe ${GITHUB_REF_NAME#v}" --generate-notes

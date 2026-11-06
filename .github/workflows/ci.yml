@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Toolchain
+        run: swift --version
+      - name: Unit tests, no-network check, render check
+        run: scripts/test.sh
+      - name: Build the signed app bundle
+        run: scripts/build-app.sh
+      - name: Launch check (sandboxed app starts, fonts load, quits)
+        run: '"build/Snowpine Transcribe.app/Contents/MacOS/SnowpineTranscribe" --launch-check'
