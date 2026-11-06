@@ -82,15 +82,20 @@ enum SpeechEngine {
             return all
         }
 
+        // Cancel covers the whole job, including the wait for the last results.
+        let holder = AnalyzerHolder(analyzer)
+        let segments: [TranscriptSegment]
         do {
-            try await withTaskCancellationHandler {
+            segments = try await withTaskCancellationHandler {
                 if let end = try await analyzer.analyzeSequence(source) {
                     try await analyzer.finalizeAndFinish(through: end)
                 } else {
                     await analyzer.cancelAndFinishNow()
                 }
+                return try await results.value
             } onCancel: {
                 results.cancel()
+                Task { await holder.analyzer.cancelAndFinishNow() }
             }
             try Task.checkCancellation()
         } catch {
@@ -98,7 +103,6 @@ enum SpeechEngine {
             await analyzer.cancelAndFinishNow()
             throw error
         }
-        let segments = try await results.value
         if let failure = source.failure { throw failure }
         return (segments, duration, locale)
     }
@@ -135,14 +139,22 @@ enum SpeechEngine {
     }
 }
 
+/// Lets the cancel handler reach the analyzer from another thread. Cancelling is safe at any time.
+private final class AnalyzerHolder: @unchecked Sendable {
+    let analyzer: SpeechAnalyzer
+    init(_ analyzer: SpeechAnalyzer) { self.analyzer = analyzer }
+}
+
 /// Reads a recording's sound as the engine asks for it, so a long file never piles up in memory.
+/// Every sound track is mixed together, because meeting and screen recordings often keep the
+/// microphone and the other people on separate tracks.
 final class AudioSource: AsyncSequence, @unchecked Sendable {
     typealias Element = AnalyzerInput
 
     let duration: Double
     private(set) var failure: Error?
     private let reader: AVAssetReader
-    private let output: AVAssetReaderTrackOutput
+    private let output: AVAssetReaderAudioMixOutput
     private let format: AVAudioFormat
     private let lock = NSLock()
 
@@ -156,7 +168,7 @@ final class AudioSource: AsyncSequence, @unchecked Sendable {
         } catch {
             throw SpeechEngine.Problem.unreadable(error.localizedDescription)
         }
-        guard let track = tracks.first else { throw SpeechEngine.Problem.noAudio }
+        guard !tracks.isEmpty else { throw SpeechEngine.Problem.noAudio }
         duration = (try? await asset.load(.duration).seconds) ?? 0
         do {
             reader = try AVAssetReader(asset: asset)
@@ -171,7 +183,7 @@ final class AudioSource: AsyncSequence, @unchecked Sendable {
         case .pcmFormatFloat64: bits = 64
         default: bits = 16
         }
-        output = AVAssetReaderTrackOutput(track: track, outputSettings: [
+        output = AVAssetReaderAudioMixOutput(audioTracks: tracks, audioSettings: [
             AVFormatIDKey: kAudioFormatLinearPCM,
             AVSampleRateKey: format.sampleRate,
             AVNumberOfChannelsKey: format.channelCount,

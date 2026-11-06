@@ -8,7 +8,7 @@ if let flag = CommandLine.arguments.firstIndex(of: "--transcribe"), CommandLine.
     let url = URL(fileURLWithPath: CommandLine.arguments[flag + 1])
     let done = DispatchSemaphore(value: 0)
     let wanted = CommandLine.arguments.firstIndex(of: "--locale").flatMap { CommandLine.arguments.indices.contains($0 + 1) ? Locale(identifier: CommandLine.arguments[$0 + 1]) : nil }
-    Task {
+    let job = Task {
         do {
             let began = Date()
             let locale: Locale
@@ -22,10 +22,18 @@ if let flag = CommandLine.arguments.firstIndex(of: "--transcribe"), CommandLine.
             let spent = Date().timeIntervalSince(began)
             FileHandle.standardError.write(Data(String(format: "TRANSCRIBE OK lines=%d words=%d audio=%.1fs took=%.1fs\n", result.segments.count, transcript.wordCount, result.duration, spent).utf8))
             exit(0)
+        } catch is CancellationError {
+            print("TRANSCRIBE CANCELLED")
+            exit(0)
         } catch {
             FileHandle.standardError.write(Data("TRANSCRIBE FAIL: \(error.localizedDescription)\n".utf8))
             exit(1)
         }
+    }
+    // `--cancel-after <seconds>` proves that Cancel stops a job part way through.
+    if let index = CommandLine.arguments.firstIndex(of: "--cancel-after"), CommandLine.arguments.indices.contains(index + 1),
+       let seconds = Double(CommandLine.arguments[index + 1]) {
+        DispatchQueue.global().asyncAfter(deadline: .now() + seconds) { job.cancel() }
     }
     done.wait()
 }

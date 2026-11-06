@@ -118,3 +118,11 @@ private func tempStore() -> LibraryStore {
     #expect(loaded.unreadable == 1)
     #expect(FileManager.default.fileExists(atPath: store.folder.appendingPathComponent("broken.json").path))
 }
+
+@Test func absurdTimesFromADamagedFileNeverCrash() {
+    #expect(TimeFormat.clock(1e100).contains(":"))
+    #expect(TimeFormat.srt(1e100).contains(":"))
+    #expect(TimeFormat.vtt(-1e100) == "00:00:00.000")
+    let huge = Transcript(title: "x", sourceFileName: "x", duration: 1e100, localeIdentifier: "en", segments: [TranscriptSegment(id: 0, start: 1e100, end: 1e100, text: "hi")])
+    #expect(TranscriptExport.srt.render(huge).contains("hi"))
+}

@@ -24,6 +24,8 @@ final class AppModel: ObservableObject {
     @Published var unreadableCount = 0
     @Published var libraryFailed = false
     @Published var isDropTarget = false
+    /// Finished transcripts that couldn't be written to disk. They stay here so nothing is lost.
+    @Published var unsaved: Set<UUID> = []
 
     let store: LibraryStore
     let player = TranscriptPlayer()
@@ -120,17 +122,28 @@ final class AppModel: ObservableObject {
         }
         let transcript = Transcript(title: url.deletingPathExtension().lastPathComponent, sourceFileName: url.lastPathComponent,
                                     duration: result.duration, localeIdentifier: result.locale.identifier, segments: result.segments)
+        library.insert(transcript, at: 0)
+        selection = transcript.id
         do {
             try store.save(transcript)
-            if let bookmark = try? url.bookmarkData(options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess]) {
-                try? store.saveBookmark(bookmark, for: transcript.id)
-            }
-            library.insert(transcript, at: 0)
-            selection = transcript.id
         } catch {
-            problem = "The transcript finished but couldn't be saved: \(error.localizedDescription)"
+            unsaved.insert(transcript.id)
+            problem = "\u{201C}\(transcript.title)\u{201D} finished but couldn't be saved. It's still open here, so export it or try saving again before you quit."
+        }
+        if let bookmark = try? url.bookmarkData(options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess]) {
+            try? store.saveBookmark(bookmark, for: transcript.id)
         }
         endJob()
+    }
+
+    func retrySave(_ transcript: Transcript) {
+        do {
+            try store.save(transcript)
+            unsaved.remove(transcript.id)
+            problem = nil
+        } catch {
+            problem = "\u{201C}\(transcript.title)\u{201D} still couldn't be saved: \(error.localizedDescription)"
+        }
     }
 
     private func fail(url: URL, error: Error) {
@@ -165,6 +178,7 @@ final class AppModel: ObservableObject {
         do {
             try store.delete(transcript.id)
             library.removeAll { $0.id == transcript.id }
+            unsaved.remove(transcript.id)
             if selection == transcript.id {
                 player.stop()
                 selection = nil
@@ -196,18 +210,25 @@ final class AppModel: ObservableObject {
     }
 
     func play(_ transcript: Transcript, from seconds: Double) {
-        guard let data = store.bookmark(for: transcript.id), player.play(id: transcript.id, bookmark: data, from: seconds) else {
-            problem = "The recording for \u{201C}\(transcript.title)\u{201D} couldn't be found. It may have been moved or deleted."
+        let title = transcript.title
+        player.onFailure = { [weak self] in
+            self?.problem = "The recording for \u{201C}\(title)\u{201D} couldn't be played. It may have been changed or damaged."
+        }
+        guard let data = store.bookmark(for: transcript.id), let refreshed = player.play(id: transcript.id, bookmark: data, from: seconds) else {
+            problem = "The recording for \u{201C}\(title)\u{201D} couldn't be found. It may have been moved or deleted."
             return
         }
+        if let refreshed { try? store.saveBookmark(refreshed, for: transcript.id) }
     }
 
-    /// True when a quit would lose work, after asking.
+    /// True when it's fine to quit, asking first if that would lose work.
     func confirmQuit() -> Bool {
-        guard isWorking else { return true }
+        guard isWorking || !unsaved.isEmpty else { return true }
         let alert = NSAlert()
-        alert.messageText = "Stop transcribing and quit?"
-        alert.informativeText = "This recording isn't finished, so its transcript won't be saved."
+        alert.messageText = isWorking ? "Stop transcribing and quit?" : "Quit without saving?"
+        alert.informativeText = isWorking
+            ? "This recording isn't finished, so its transcript won't be saved."
+            : "A finished transcript couldn't be saved and will be lost. Export it first if you need it."
         alert.addButton(withTitle: "Quit")
         alert.addButton(withTitle: "Keep Working")
         return alert.runModal() == .alertFirstButtonReturn
@@ -227,24 +248,39 @@ final class TranscriptPlayer: ObservableObject {
     @Published private(set) var time: Double = 0
     @Published private(set) var transcriptID: UUID?
 
+    /// Called when the recording turns out not to be playable.
+    var onFailure: (() -> Void)?
+
     private var player: AVPlayer?
     private var observer: Any?
+    private var statusWatch: NSKeyValueObservation?
     private var scopedURL: URL?
 
-    func play(id: UUID, bookmark: Data, from seconds: Double) -> Bool {
+    /// Starts playing. Returns nil if the recording can't be reached, otherwise a refreshed bookmark if the old one went stale.
+    func play(id: UUID, bookmark: Data, from seconds: Double) -> Data?? {
+        var refreshed: Data?
         if transcriptID != id || player == nil {
             stop()
             var stale = false
             guard let url = try? URL(resolvingBookmarkData: bookmark, options: .withSecurityScope, bookmarkDataIsStale: &stale),
-                  url.isFileURL, url.startAccessingSecurityScopedResource() else { return false }
+                  url.isFileURL, url.startAccessingSecurityScopedResource() else { return nil }
             guard FileManager.default.isReadableFile(atPath: url.path) else {
                 url.stopAccessingSecurityScopedResource()
-                return false
+                return nil
             }
+            if stale { refreshed = try? url.bookmarkData(options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess]) }
             scopedURL = url
-            let player = AVPlayer(url: url)
+            let item = AVPlayerItem(url: url)
+            let player = AVPlayer(playerItem: item)
             self.player = player
             transcriptID = id
+            statusWatch = item.observe(\.status) { [weak self] item, _ in
+                guard item.status == .failed else { return }
+                Task { @MainActor [weak self] in
+                    self?.stop()
+                    self?.onFailure?()
+                }
+            }
             observer = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 4), queue: .main) { [weak self] time in
                 MainActor.assumeIsolated {
                     self?.time = time.seconds
@@ -256,7 +292,7 @@ final class TranscriptPlayer: ObservableObject {
         player?.play()
         isPlaying = true
         time = seconds
-        return true
+        return .some(refreshed)
     }
 
     func togglePause() {
@@ -268,6 +304,7 @@ final class TranscriptPlayer: ObservableObject {
         player?.pause()
         if let observer { player?.removeTimeObserver(observer) }
         observer = nil
+        statusWatch = nil
         player = nil
         isPlaying = false
         transcriptID = nil

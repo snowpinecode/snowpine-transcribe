@@ -109,7 +109,7 @@ public enum TimeFormat {
     public static func vtt(_ seconds: Double) -> String { stamp(seconds, separator: ".") }
 
     private static func stamp(_ seconds: Double, separator: String) -> String {
-        let safe = seconds.isFinite ? max(0, seconds) : 0
+        let safe = safeSeconds(seconds)
         let totalMilliseconds = Int((safe * 1000).rounded())
         let ms = totalMilliseconds % 1000
         let total = totalMilliseconds / 1000
@@ -117,7 +117,12 @@ public enum TimeFormat {
     }
 
     private static func wholeSeconds(_ seconds: Double) -> Int {
-        seconds.isFinite ? Int(max(0, seconds)) : 0
+        Int(safeSeconds(seconds))
+    }
+
+    /// A damaged file can hold any number, so keep times in a range that converts safely.
+    private static func safeSeconds(_ seconds: Double) -> Double {
+        seconds.isFinite ? min(max(0, seconds), 1_000_000_000) : 0
     }
 }
 

@@ -73,7 +73,7 @@ struct Sidebar: View {
                 ForEach(model.library) { item in
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.title).font(Brand.medium(13)).lineLimit(1)
-                        Text(TimeFormat.clock(item.duration) + " \u{00B7} " + item.createdAt.formatted(date: .abbreviated, time: .omitted))
+                        Text(model.unsaved.contains(item.id) ? "Not saved" : TimeFormat.clock(item.duration) + " \u{00B7} " + item.createdAt.formatted(date: .abbreviated, time: .omitted))
                             .font(Brand.body(11)).foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 2)
@@ -219,6 +219,9 @@ struct TranscriptView: View {
                     Button { player.togglePause() } label: {
                         Label(player.isPlaying ? "Pause" : "Play", systemImage: player.isPlaying ? "pause.fill" : "play.fill")
                     }
+                }
+                if model.unsaved.contains(transcript.id) {
+                    Button("Try Saving Again") { model.retrySave(transcript) }
                 }
                 Button("Copy All") { model.copyAll(transcript) }
                 Menu("Export") {
