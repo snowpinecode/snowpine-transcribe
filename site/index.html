@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; media-src 'self'; style-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Snowpine Transcribe: free, private transcripts on your Mac</title>
+<meta name="description" content="A free, open source Mac app that turns recordings into searchable transcripts. Everything happens on your Mac, and nothing is uploaded.">
+<link rel="canonical" href="https://snowpinecode.github.io/snowpine-transcribe/">
+<meta property="og:title" content="Snowpine Transcribe: free, private transcripts on your Mac">
+<meta property="og:description" content="Drop in a recording and get a searchable transcript. Nothing leaves your Mac. Free and open source.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://snowpinecode.github.io/snowpine-transcribe/">
+<meta property="og:image" content="https://snowpinecode.github.io/snowpine-transcribe/assets/og-image.png">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a href="https://snowpinecode.com"><img src="assets/logo.svg" alt="Snowpine Code" width="168" height="32"></a>
+  <a href="https://github.com/snowpinecode/snowpine-transcribe">GitHub</a>
+</div></header>
+
+<main>
+<div class="wrap hero">
+  <div>
+    <img class="icon" src="assets/icon.png" alt="" width="112" height="112">
+    <h1>Your recordings, turned into text on your Mac</h1>
+    <p class="lead">Drop in a recording or a video and get a searchable transcript with times. Nothing is uploaded, and there's nothing to pay per minute.</p>
+    <div class="actions">
+      <a class="btn primary" href="https://github.com/snowpinecode/snowpine-transcribe/releases/latest/download/Snowpine-Transcribe.zip">Download for Mac<span class="us"></span></a>
+      <a class="btn" href="https://github.com/snowpinecode/snowpine-transcribe">View the code</a>
+    </div>
+    <p class="fine">Free and open source. macOS 26 or later. See <a href="#install">how to install</a> first.</p>
+  </div>
+  <figure>
+    <img class="shot" src="assets/pictures/transcript-light.png" alt="A transcript of a client visit with a time beside each line and a search box above." width="1400" height="964">
+    <figcaption>The real app, with a made-up meeting.</figcaption>
+  </figure>
+</div>
+
+<section class="alt"><div class="wrap">
+  <div class="intro"><div class="eyebrow">See it</div><h2>One minute with Snowpine Transcribe</h2></div>
+  <video controls preload="none" playsinline poster="assets/video-poster.jpg" width="1920" height="1080">
+    <source src="assets/snowpine-transcribe.mp4" type="video/mp4">
+    <a href="assets/snowpine-transcribe.mp4">Download the video</a>
+  </video>
+</div></section>
+
+<section><div class="wrap">
+  <div class="intro"><div class="eyebrow">How it works</div><h2>From recording to text in minutes</h2></div>
+  <div class="row">
+    <div><h3>Drop it in</h3><p>Voice Memos, Zoom recordings, phone videos and more. If a recording keeps the microphone and the other people on separate tracks, it hears them all.</p></div>
+    <figure><img class="shot" src="assets/pictures/start-light.png" alt="The start screen, which says Drop a recording here." loading="lazy" width="1400" height="964"></figure>
+  </div>
+  <div class="row">
+    <div><h3>It's fast</h3><p>In my test, a 4 hour recording took about 2 minutes on an M5 MacBook Pro, and you can watch the lines appear. Your speed will depend on your Mac and your recording.</p></div>
+    <figure><img class="shot" src="assets/pictures/working-light.png" alt="A recording being transcribed, with a progress bar and the first lines appearing." loading="lazy" width="1400" height="964"></figure>
+  </div>
+  <div class="row">
+    <div><h3>Find it and check it</h3><p>Search for anything that was said. Click a time to hear that moment, so you can check a name or a number. Then copy it, or save it as text, Markdown, subtitles or JSON.</p></div>
+    <figure><img class="shot" src="assets/pictures/transcript-dark.png" alt="A transcript in dark mode." loading="lazy" width="1400" height="964"><figcaption>It follows your Mac's light or dark setting.</figcaption></figure>
+  </div>
+</div></section>
+
+<section class="alt"><div class="wrap">
+  <div class="intro"><div class="eyebrow">Private</div><h2>Your recordings stay on your Mac</h2>
+    <p>It uses Apple's built-in speech engine on your Mac. The app runs in the macOS sandbox with no network permission, so macOS itself blocks it from the internet. There's no account, no analytics and no tracking. Transcripts are saved in the app on your Mac until you delete them. You can check all of this in the code.</p></div>
+</div></section>
+
+<section id="install"><div class="wrap">
+  <div class="intro"><div class="eyebrow">Install</div><h2>Get it running</h2>
+    <p>I don't pay for an Apple developer certificate on this free app, so macOS will warn you the first time. Here's how to get past that.</p></div>
+  <ol class="steps">
+    <li><a href="https://github.com/snowpinecode/snowpine-transcribe/releases/latest/download/Snowpine-Transcribe.zip">Download the zip</a>, open it, and drag Snowpine Transcribe to your Applications folder.</li>
+    <li>Open it. macOS will say it can't check the app. Click <strong>Done</strong>.</li>
+    <li>Go to System Settings &gt; Privacy &amp; Security, scroll down, and click <strong>Open Anyway</strong>.</li>
+    <li>Drop in a recording. If macOS doesn't have the speech model for your language yet, it downloads it once.</li>
+  </ol>
+  <p class="fine narrow">To remove it, drag the app to the Trash. Delete any transcripts first if you want them gone from your Mac.</p>
+  <div class="narrow gap">
+    <h3>Or build it yourself</h3>
+    <p class="sub">Building it yourself takes about a minute and skips the warning. You need the Xcode Command Line Tools.</p>
+    <pre><code>git clone https://github.com/snowpinecode/snowpine-transcribe.git
+cd snowpine-transcribe
+scripts/build-app.sh --install</code></pre>
+  </div>
+</div></section>
+
+<section class="alt"><div class="wrap">
+  <div class="intro"><div class="eyebrow">Questions</div><h2>Good to know</h2></div>
+  <details><summary>Is it really free?</summary><p>Yes. It's open source under the MIT License, so you can use it, change it and share it.</p></details>
+  <details><summary>Which Macs does it work on?</summary><p>It needs macOS 26 or later, because it uses Apple's newer speech engine. I've only tested it on an Apple silicon MacBook Pro.</p></details>
+  <details><summary>How accurate is it?</summary><p>It's usually good on clear speech, but it can mishear names, numbers and unusual words. Click the time beside a line to check it by ear before you rely on it.</p></details>
+  <details><summary>Does it say who's talking?</summary><p>Not yet. Transcripts have times, but no speaker names.</p></details>
+  <details><summary>Does it record meetings?</summary><p>No. It works from recordings you already have, and it never uses your microphone. If you record people, ask them first.</p></details>
+  <details><summary>Who made this?</summary><p>Snowpine Code. I build custom websites, apps and automations. <a href="https://snowpinecode.com">See what else I do</a>.</p></details>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <a href="https://snowpinecode.com"><img src="assets/logo.svg" alt="Snowpine Code" width="168" height="32"></a>
+  <div class="links">
+    <a href="https://github.com/snowpinecode/snowpine-transcribe">Code on GitHub</a>
+    <a href="https://github.com/snowpinecode/snowpine-transcribe/blob/main/SECURITY.md">Security</a>
+    <a href="https://github.com/snowpinecode/snowpine-transcribe/blob/main/LICENSE">MIT License</a>
+    <a href="https://snowpinecode.com">snowpinecode.com</a>
+  </div>
+  <p class="fine">This page has no analytics or cookies of its own. GitHub hosts it. Copyright 2026 Snowpine Code LLC.</p>
+</div></footer>
+</body>
+</html>
