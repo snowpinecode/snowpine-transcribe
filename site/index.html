@@ -67,7 +67,7 @@
 
 <section class="alt"><div class="wrap">
   <div class="intro"><div class="eyebrow">Private</div><h2>Your recordings stay on your Mac</h2>
-    <p>It uses Apple's built-in speech engine on your Mac. The app runs in the macOS sandbox with no network permission, so macOS itself blocks it from the internet. There's no account, no analytics and no tracking. Transcripts are saved in the app on your Mac until you delete them. You can check all of this in the code.</p></div>
+    <p>It uses Apple's built-in speech engine on your Mac. Your recordings and transcripts never leave it. The app runs in the macOS sandbox with no network permission of its own. The only thing that goes online is the update check, which a separate helper runs against GitHub, and you can turn that off. There's no account, no analytics and no tracking. Transcripts are saved in the app on your Mac until you delete them. You can check all of this in the code.</p></div>
 </div></section>
 
 <section id="install"><div class="wrap">
@@ -77,6 +77,7 @@
     <li><a href="https://github.com/snowpinecode/snowpine-transcribe/releases/latest/download/Snowpine-Transcribe.zip">Download the zip</a>, open it, and drag Snowpine Transcribe to your Applications folder.</li>
     <li>Open it. macOS will say it can't check the app. Click <strong>Done</strong>.</li>
     <li>Go to System Settings &gt; Privacy &amp; Security, scroll down, and click <strong>Open Anyway</strong>.</li>
+    <li>In the box that pops up, click <strong>Open Anyway</strong> again (not Move to Trash), then confirm with your password or Touch ID. You only do this once.</li>
     <li>Drop in a recording. If macOS doesn't have the speech model for your language yet, it downloads it once.</li>
   </ol>
   <p class="fine narrow">To remove it, drag the app to the Trash. Delete any transcripts first if you want them gone from your Mac.</p>
@@ -96,6 +97,7 @@ scripts/build-app.sh --install</code></pre>
   <details><summary>How accurate is it?</summary><p>It's usually good on clear speech, but it can mishear names, numbers and unusual words. Click the time beside a line to check it by ear before you rely on it.</p></details>
   <details><summary>Does it say who's talking?</summary><p>Not yet. Transcripts have times, but no speaker names.</p></details>
   <details><summary>Does it record meetings?</summary><p>No. It works from recordings you already have, and it never uses your microphone. If you record people, ask them first.</p></details>
+  <details><summary>How do updates work?</summary><p>It checks GitHub when it opens and once a day. If a new version is out it tells you, and one click installs it. Nothing installs without that click, and each update must carry a matching signature. Turn off Check for Updates Automatically in the app menu and it only checks when you ask. If you have version 0.1.0, download the new version once by hand.</p></details>
   <details><summary>Who made this?</summary><p>Snowpine Code. I build custom websites, apps and automations. <a href="https://snowpinecode.com">See what else I do</a>.</p></details>
 </div></section>
 </main>

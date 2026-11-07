@@ -24,6 +24,8 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/SnowpineTranscribe"
 # The brand fonts (SIL Open Font License) travel with the app.
 cp -R Resources/Fonts "$APP/Contents/Resources/Fonts"
+# Sparkle's license travels with its framework.
+cp Resources/Sparkle-LICENSE.txt "$APP/Contents/Resources/"
 sed -e "s/__BUNDLE_ID__/$BUNDLE_ID/" -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD_NUMBER/" \
     Resources/Info.plist > "$APP/Contents/Info.plist"
 # App icon: Resources/AppIcon.png (1024 x 1024) becomes AppIcon.icns.
