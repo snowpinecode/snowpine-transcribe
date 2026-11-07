@@ -2,11 +2,27 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- The App Sandbox with no network entitlement: macOS itself blocks network access. -->
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
+	<!-- Read the recordings you choose, and write the exports you save. Nothing else on the Mac. -->
 	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>
+	<!-- Remember where a recording is, so a click on a time can play it later. -->
 	<key>com.apple.security.files.bookmarks.app-scope</key>
 	<true/>
+	<!-- Lets the app load the Sparkle framework bundled inside it. Library validation needs an Apple
+	     Team ID, which a self-signed certificate doesn't have. The rest of the hardened runtime stays on.
+	     Remove this if the app is ever signed with an Apple Developer ID. -->
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
+	<!-- In-app updates: lets the app talk to Sparkle's own status (spks) and Installer (spki) services.
+	     These are local connections between processes on the Mac, not network access. Only Sparkle's
+	     separate Downloader helper fetches the feed and updates. The build fills in the bundle id. -->
+	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
+	<array>
+		<string>__BUNDLE_ID__-spks</string>
+		<string>__BUNDLE_ID__-spki</string>
+	</array>
 </dict>
 </plist>

@@ -152,14 +152,21 @@ final class AudioSource: AsyncSequence, @unchecked Sendable {
     typealias Element = AnalyzerInput
 
     let duration: Double
-    private(set) var failure: Error?
+    /// Set when reading stopped because of an error rather than the end of the file.
+    var failure: Error? { lock.withLock { _failure } }
+    private var _failure: Error?
     private let reader: AVAssetReader
     private let output: AVAssetReaderAudioMixOutput
     private let format: AVAudioFormat
     private let lock = NSLock()
 
     init(url: URL, format: AVAudioFormat) async throws {
-        self.format = format
+        // Interleaved, to match what the reader hands over when a format has more than one channel.
+        guard let interleaved = AVAudioFormat(commonFormat: format.commonFormat, sampleRate: format.sampleRate,
+                                              channels: format.channelCount, interleaved: true) else {
+            throw SpeechEngine.Problem.unreadable("The sound format isn't supported.")
+        }
+        self.format = interleaved
         guard url.isFileURL else { throw SpeechEngine.Problem.unreadable("Only files on this Mac can be transcribed.") }
         let asset = AVURLAsset(url: url)
         let tracks: [AVAssetTrack]
@@ -210,30 +217,33 @@ final class AudioSource: AsyncSequence, @unchecked Sendable {
 
     func makeAsyncIterator() -> Iterator { Iterator(source: self) }
 
-    private func nextBuffer() throws -> AnalyzerInput? {
-        lock.lock(); defer { lock.unlock() }
-        guard let sample = output.copyNextSampleBuffer() else {
-            if reader.status == .failed {
-                let error = SpeechEngine.Problem.unreadable(reader.error?.localizedDescription ?? "Reading stopped early.")
-                failure = error
-                throw error
-            }
-            return nil
-        }
-        let frames = AVAudioFrameCount(CMSampleBufferGetNumSamples(sample))
-        guard frames > 0, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames) else { return try nextUnlocked() }
-        buffer.frameLength = frames
-        let status = CMSampleBufferCopyPCMDataIntoAudioBufferList(sample, at: 0, frameCount: Int32(frames), into: buffer.mutableAudioBufferList)
-        guard status == noErr else {
-            let error = SpeechEngine.Problem.unreadable("The sound couldn't be decoded (\(status)).")
-            failure = error
-            throw error
-        }
-        return AnalyzerInput(buffer: buffer, bufferStartTime: nil)
+    private func recordFailure(_ why: String) -> Error {
+        let error = SpeechEngine.Problem.unreadable(why)
+        lock.withLock { _failure = error }
+        reader.cancelReading()
+        return error
     }
 
-    private func nextUnlocked() throws -> AnalyzerInput? {
-        lock.unlock(); defer { lock.lock() }
-        return try nextBuffer()
+    private func nextBuffer() throws -> AnalyzerInput? {
+        while true {
+            guard let sample = output.copyNextSampleBuffer() else {
+                if reader.status == .failed {
+                    throw recordFailure(reader.error?.localizedDescription ?? "Reading stopped early.")
+                }
+                return nil
+            }
+            let count = CMSampleBufferGetNumSamples(sample)
+            if count == 0 { continue }
+            // A gap in the audio fails the job. A transcript must never be saved with part of it missing.
+            guard count > 0, count <= Int(Int32.max),
+                  let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(count)) else {
+                throw recordFailure("A part of the sound couldn't be read.")
+            }
+            buffer.frameLength = AVAudioFrameCount(count)
+            let status = CMSampleBufferCopyPCMDataIntoAudioBufferList(sample, at: 0, frameCount: Int32(count), into: buffer.mutableAudioBufferList)
+            guard status == noErr else { throw recordFailure("The sound couldn't be decoded (\(status)).") }
+            let start = CMSampleBufferGetPresentationTimeStamp(sample)
+            return AnalyzerInput(buffer: buffer, bufferStartTime: start.isNumeric ? start : nil)
+        }
     }
 }

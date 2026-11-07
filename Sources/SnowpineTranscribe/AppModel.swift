@@ -8,6 +8,7 @@ import UniformTypeIdentifiers
 @MainActor
 final class AppModel: ObservableObject {
     struct Job {
+        var id = UUID()
         var fileName: String
         var fraction: Double = 0
         var status = "Starting"
@@ -48,8 +49,10 @@ final class AppModel: ObservableObject {
     func reload() {
         do {
             let loaded = try store.load()
-            library = loaded.transcripts
             unreadableCount = loaded.unreadable
+            // A finished transcript that couldn't be saved stays reachable, whatever is on disk.
+            let kept = library.filter { unsaved.contains($0.id) && !loaded.transcripts.map(\.id).contains($0.id) }
+            library = kept + loaded.transcripts
             libraryFailed = false
         } catch {
             libraryFailed = true
@@ -74,9 +77,18 @@ final class AppModel: ObservableObject {
     }
 
     func add(_ urls: [URL]) {
-        let files = urls.filter(\.isFileURL)
+        var files: [URL] = []
+        var rejected: [String] = []
+        for url in urls {
+            let type = url.isFileURL ? (try? url.resourceValues(forKeys: [.contentTypeKey]))?.contentType : nil
+            if let type, type.conforms(to: .audio) || type.conforms(to: .movie) || type.conforms(to: .audiovisualContent) {
+                files.append(url)
+            } else {
+                rejected.append(url.isFileURL ? url.lastPathComponent : url.absoluteString)
+            }
+        }
+        problem = rejected.isEmpty ? nil : "Only audio and video files can be transcribed. Not added: \(rejected.joined(separator: ", "))."
         guard !files.isEmpty else { return }
-        problem = nil
         waiting.append(contentsOf: files)
         startNext()
     }
@@ -84,7 +96,9 @@ final class AppModel: ObservableObject {
     private func startNext() {
         guard job == nil, !waiting.isEmpty else { return }
         let url = waiting.removeFirst()
-        job = Job(fileName: url.lastPathComponent)
+        let newJob = Job(fileName: url.lastPathComponent)
+        let jobID = newJob.id
+        job = newJob
         selection = nil
         player.stop()
         let chosen = language
@@ -95,26 +109,28 @@ final class AppModel: ObservableObject {
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
             do {
                 let result = try await SpeechEngine.transcribe(url: url, locale: chosen) { update in
-                    Task { @MainActor [weak self] in self?.apply(update) }
+                    Task { @MainActor [weak self] in self?.apply(update, to: jobID) }
                 }
                 try Task.checkCancellation()
-                self?.finish(url: url, result: result)
+                self?.finish(jobID, url: url, result: result)
             } catch is CancellationError {
-                self?.endJob()
+                if self?.job?.id == jobID { self?.endJob() }
             } catch {
-                self?.fail(url: url, error: error)
+                self?.fail(jobID, url: url, error: error)
             }
         }
     }
 
-    private func apply(_ update: SpeechEngine.Update) {
-        guard job != nil else { return }
+    /// Late results from a cancelled job can't touch the next one: every step checks the job's id.
+    private func apply(_ update: SpeechEngine.Update, to jobID: UUID) {
+        guard job?.id == jobID else { return }
         job?.fraction = max(job?.fraction ?? 0, update.fraction)
         job?.status = update.status
         job?.lines.append(contentsOf: update.newSegments)
     }
 
-    private func finish(url: URL, result: (segments: [TranscriptSegment], duration: Double, locale: Locale)) {
+    private func finish(_ jobID: UUID, url: URL, result: (segments: [TranscriptSegment], duration: Double, locale: Locale)) {
+        guard job?.id == jobID else { return }
         guard !result.segments.isEmpty else {
             problem = "No speech was found in \(url.lastPathComponent). Nothing was saved."
             endJob()
@@ -146,7 +162,8 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func fail(url: URL, error: Error) {
+    private func fail(_ jobID: UUID, url: URL, error: Error) {
+        guard job?.id == jobID else { return }
         problem = "\(url.lastPathComponent): \(error.localizedDescription)"
         endJob()
     }

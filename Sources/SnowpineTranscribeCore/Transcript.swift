@@ -167,14 +167,14 @@ public enum TranscriptExport: String, CaseIterable, Identifiable, Sendable {
         case .text:
             return lines.map { "[\(TimeFormat.clock($0.start))] \($0.text)" }.joined(separator: "\n") + "\n"
         case .markdown:
-            let body = lines.map { "**\(TimeFormat.clock($0.start))** \($0.text)" }.joined(separator: "\n\n")
-            return "# \(transcript.title)\n\n\(body)\n"
+            let body = lines.map { "**\(TimeFormat.clock($0.start))** \(Self.markdownSafe($0.text))" }.joined(separator: "\n\n")
+            return "# \(Self.markdownSafe(transcript.title))\n\n\(body)\n"
         case .srt:
             return lines.enumerated().map { index, line in
-                "\(index + 1)\n\(TimeFormat.srt(line.start)) --> \(TimeFormat.srt(line.end))\n\(Self.cueText(line.text))\n"
+                "\(index + 1)\n\(TimeFormat.srt(line.start)) --> \(TimeFormat.srt(line.end))\n\(Self.srtText(line.text))\n"
             }.joined(separator: "\n")
         case .vtt:
-            let cues = lines.map { "\(TimeFormat.vtt($0.start)) --> \(TimeFormat.vtt($0.end))\n\(Self.cueText($0.text))\n" }
+            let cues = lines.map { "\(TimeFormat.vtt($0.start)) --> \(TimeFormat.vtt($0.end))\n\(Self.vttText($0.text))\n" }
             return "WEBVTT\n\n" + cues.joined(separator: "\n")
         case .json:
             let encoder = JSONEncoder()
@@ -185,11 +185,40 @@ public enum TranscriptExport: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    private static func oneLine(_ text: String) -> String {
+        text.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+
     /// A blank line or a stray cue arrow in the text would break a subtitle file.
     private static func cueText(_ text: String) -> String {
-        text.replacingOccurrences(of: "-->", with: "->")
-            .components(separatedBy: .newlines)
-            .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-            .joined(separator: " ")
+        var out = oneLine(text)
+        while out.contains("-->") { out = out.replacingOccurrences(of: "-->", with: "->") }
+        return out.isEmpty ? "..." : out
+    }
+
+    /// WebVTT: markup characters as entities, so "<b>" or "<00:00:05.000>" shows as typed.
+    private static func vttText(_ text: String) -> String {
+        cueText(text).replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+    }
+
+    /// SubRip has no escapes and many players read "<b>" as formatting, so angle brackets become look-alikes.
+    private static func srtText(_ text: String) -> String {
+        cueText(text).replacingOccurrences(of: "<", with: "\u{2039}")
+            .replacingOccurrences(of: ">", with: "\u{203A}")
+    }
+
+    /// Escapes what Markdown would read as formatting. With brackets escaped, no link or image can form.
+    private static func markdownSafe(_ text: String) -> String {
+        var out = ""
+        for ch in oneLine(text) {
+            if "\\`*_[]<>#|".contains(ch) { out.append("\\") }
+            out.append(ch)
+        }
+        return out
     }
 }

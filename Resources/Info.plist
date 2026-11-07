@@ -46,6 +46,24 @@
 	<string>Copyright 2026 Snowpine Code LLC. MIT License.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<!-- In-app updates (Sparkle). The feed is the newest release's appcast.xml on GitHub; every update
+	     must be signed with the private key matching SUPublicEDKey. -->
+	<key>SUFeedURL</key>
+	<string>https://github.com/snowpinecode/snowpine-transcribe/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>2sMNxdjB10TrXedprPkctqA56E6VbMUCATq+eb9H9Q0=</string>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
+	<key>SUEnableDownloaderService</key>
+	<true/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Snowpine Transcribe turns your recordings into text using on-device speech recognition. Nothing leaves this Mac.</string>
 </dict>

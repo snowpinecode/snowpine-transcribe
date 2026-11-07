@@ -48,6 +48,11 @@ if let flag = CommandLine.arguments.firstIndex(of: "--render-docs") {
     exit(MainActor.assumeIsolated { DocsRenderer.run(outputDirectory: folder) })
 }
 
+// `--update-check` (packaged app only) reads the update feed with no window and reports what it found.
+if CommandLine.arguments.contains("--update-check") {
+    exit(MainActor.assumeIsolated { UpdateCheck.run() })
+}
+
 // `--launch-check` opens the model and checks the sandbox and fonts without showing a window (used by CI).
 if CommandLine.arguments.contains("--launch-check") {
     let sandboxed = ProcessInfo.processInfo.environment["APP_SANDBOX_CONTAINER_ID"] != nil

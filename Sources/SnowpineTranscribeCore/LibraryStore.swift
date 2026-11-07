@@ -9,9 +9,13 @@ public struct LibraryStore: Sendable {
     }
 
     public let folder: URL
+    /// A 4 hour transcript is about 1 MB. A far larger file is damaged, so it isn't read into memory.
+    public static let defaultMaximumFileBytes = 64 * 1024 * 1024
+    public let maximumFileBytes: Int
 
-    public init(folder: URL) {
+    public init(folder: URL, maximumFileBytes: Int = LibraryStore.defaultMaximumFileBytes) {
         self.folder = folder
+        self.maximumFileBytes = maximumFileBytes
     }
 
     public func load() throws -> Loaded {
@@ -21,12 +25,20 @@ public struct LibraryStore: Sendable {
         decoder.dateDecodingStrategy = .iso8601
         var transcripts: [Transcript] = []
         var unreadable = 0
+        var seen = Set<UUID>()
         for file in files where file.pathExtension == "json" {
-            if let data = try? Data(contentsOf: file), let transcript = try? decoder.decode(Transcript.self, from: data) {
-                transcripts.append(transcript)
-            } else {
+            let size = (try? file.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+            guard size <= maximumFileBytes,
+                  let data = try? Data(contentsOf: file),
+                  let transcript = try? decoder.decode(Transcript.self, from: data),
+                  // The file name is the id. A file claiming another id (or a repeat) is set aside,
+                  // so Delete always removes the file that was shown.
+                  file.deletingPathExtension().lastPathComponent.uppercased() == transcript.id.uuidString,
+                  seen.insert(transcript.id).inserted else {
                 unreadable += 1
+                continue
             }
+            transcripts.append(transcript)
         }
         transcripts.sort { $0.createdAt > $1.createdAt }
         return Loaded(transcripts: transcripts, unreadable: unreadable)

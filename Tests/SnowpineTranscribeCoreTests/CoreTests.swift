@@ -69,7 +69,7 @@ private let sample = Transcript(title: "Visit", sourceFileName: "visit.m4a", cre
 @Test func subtitlesStayValidWhateverWasSaid() {
     let srt = TranscriptExport.srt.render(sample)
     #expect(srt.hasPrefix("1\n00:00:01,250 --> 00:00:03,500\nThanks for joining.\n\n2\n"))
-    #expect(srt.contains("Résumé -> next steps."))
+    #expect(srt.contains("Résumé -\u{203A} next steps."))
     #expect(srt.components(separatedBy: "-->").count == 3)
     #expect(TranscriptExport.vtt.render(sample).hasPrefix("WEBVTT\n\n00:00:01.250 --> 00:00:03.500\n"))
 }
@@ -125,4 +125,56 @@ private func tempStore() -> LibraryStore {
     #expect(TimeFormat.vtt(-1e100) == "00:00:00.000")
     let huge = Transcript(title: "x", sourceFileName: "x", duration: 1e100, localeIdentifier: "en", segments: [TranscriptSegment(id: 0, start: 1e100, end: 1e100, text: "hi")])
     #expect(TranscriptExport.srt.render(huge).contains("hi"))
+}
+
+@Test func aFileClaimingAnotherIdIsSetAsideSoDeleteCantRemoveTheWrongFile() throws {
+    let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    let store = LibraryStore(folder: folder)
+    let kept = Transcript(title: "Kept", sourceFileName: "a.m4a", duration: 1, localeIdentifier: "en-US",
+                          segments: [TranscriptSegment(id: 0, start: 0, end: 1, text: "Hello.")])
+    try store.save(kept)
+    let original = folder.appendingPathComponent(kept.id.uuidString + ".json")
+    try FileManager.default.copyItem(at: original, to: folder.appendingPathComponent(UUID().uuidString + ".json"))
+    let loaded = try store.load()
+    #expect(loaded.transcripts.map(\.id) == [kept.id])
+    #expect(loaded.unreadable == 1)
+}
+
+@Test func anOversizedFileIsSetAsideUnread() throws {
+    let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    let store = LibraryStore(folder: folder, maximumFileBytes: 10)
+    let big = Transcript(title: "Big", sourceFileName: "a.m4a", duration: 1, localeIdentifier: "en-US",
+                         segments: [TranscriptSegment(id: 0, start: 0, end: 1, text: "Hello there.")])
+    try store.save(big)
+    let loaded = try store.load()
+    #expect(loaded.transcripts.isEmpty)
+    #expect(loaded.unreadable == 1)
+    #expect(FileManager.default.fileExists(atPath: folder.appendingPathComponent(big.id.uuidString + ".json").path))
+}
+
+@Test func markdownCannotFormLinksOrImages() {
+    let t = Transcript(title: "![x](https://example.com/a.png)", sourceFileName: "a.m4a", duration: 1, localeIdentifier: "en-US",
+                       segments: [TranscriptSegment(id: 0, start: 0, end: 1, text: "see [here](https://example.com) # *now*")])
+    let md = TranscriptExport.markdown.render(t)
+    #expect(!md.contains("![x]("))
+    #expect(!md.contains("[here]("))
+    #expect(md.contains("\\[here\\]"))
+    #expect(md.contains("\\*now\\*"))
+}
+
+@Test func subtitleMarkupShowsAsTyped() {
+    let t = Transcript(title: "T", sourceFileName: "a.m4a", duration: 1, localeIdentifier: "en-US",
+                       segments: [TranscriptSegment(id: 0, start: 0, end: 1, text: "a <b>bold</b> & ---> move")])
+    let vtt = TranscriptExport.vtt.render(t)
+    #expect(vtt.contains("&lt;b&gt;bold&lt;/b&gt; &amp;"))
+    let srt = TranscriptExport.srt.render(t)
+    #expect(srt.contains("\u{2039}b\u{203A}bold"))
+    // Only the real timing line has an arrow.
+    #expect(srt.components(separatedBy: "-->").count == 2)
+}
+
+@Test func anEmptyCueStaysAValidCue() {
+    let t = Transcript(title: "T", sourceFileName: "a.m4a", duration: 1, localeIdentifier: "en-US",
+                       segments: [TranscriptSegment(id: 0, start: 0, end: 1, text: "\n\n")])
+    #expect(TranscriptExport.srt.render(t).contains("\n...\n"))
 }
