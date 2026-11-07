@@ -1,5 +1,9 @@
 # Build log
 
+## 2026-11-06: version 0.2.1
+
+No changes to how Snowpine Transcribe works. This release exists to prove in-app updates end to end: a copy of the version before it finds this one, and one click installs it.
+
 ## 2026-11-06: version 0.2.0
 
 - In-app updates with Sparkle 2.10.1 (pinned, the one third-party dependency). It checks GitHub at launch and once a day, says when a new version is out, and one click installs it. Check for Updates and Check for Updates Automatically are in the app menu; with automatic checks off, background checks are refused.
